@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <style>
+        /* Fixe la navbar en haut */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1030;
+        }
+
+        /* Pour éviter que le contenu passe sous la navbar */
+        body {
+            padding-top: 70px;
+        }
+
+        /* Icônes pour toggle */
+        .theme-icon {
+            font-size: 1.3rem;
+            cursor: pointer;
+        }
+
+        /* Cartes en dark mode */
+        [data-bs-theme="dark"] .card {
+            background-color: #2c2f33;
+            color: #f0f0f0;
+        }
+
+        [data-bs-theme="dark"] .list-group-item {
+            background-color: #343a40;
+            color: #f0f0f0;
+        }
+
+        [data-bs-theme="dark"] .form-control {
+            background-color: #495057;
+            color: #f0f0f0;
+            border-color: #666;
+        }
+
+        [data-bs-theme="dark"] input::placeholder {
+            color: #ccc;
+        }
+
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/dashboard">Admin Panel</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+      <ul class="navbar-nav me-3">
+        <li class="nav-item">
+          <a class="nav-link" href="/dashboard">Dashboard</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/logout">Logout</a>
+        </li>
+      </ul>
+
+      <!-- 🌙☀️ Toggle button with icons -->
+      <span class="theme-icon text-light" id="toggleTheme" title="Toggle Theme">🌙</span>
+    </div>
+  </div>
+</nav>
+
+<!-- Your entire <div class="container my-5"> stays unchanged -->
+<div class="container my-5">
+    <h1 class="mb-4 text-center">Admin Dashboard</h1>
+
+    <div class="row">
+        <!-- Users Section -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">Users</div>
+                <ul class="list-group list-group-flush">
+                    {% for user in users %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ user }}
+                        <div>
+                            <a href="/admin/delete_session/{{ user }}" class="btn btn-danger btn-sm">Delete</a>
+                            <a href="/admin/status/{{ user }}" class="btn btn-secondary btn-sm">Status</a>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Create User -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">Create New User</div>
+                <div class="card-body">
+                    <form action="/create_user" method="post">
+                        <div class="mb-3">
+                            <input type="text" name="username" class="form-control" placeholder="Username" required>
+                        </div>
+                        <div class="mb-3">
+                            <input type="password" name="password" class="form-control" placeholder="Password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create User</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Install Package -->
+    <div class="card mb-4">
+        <div class="card-header">Install Package in Container</div>
+        <div class="card-body">
+            <form action="/admin/install_package" method="post" class="row g-3">
+                <div class="col-md-5">
+                    <input type="text" name="container" class="form-control" placeholder="Container Name" required>
+                </div>
+                <div class="col-md-5">
+                    <input type="text" name="package" class="form-control" placeholder="Package Name" required>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-warning w-100">Install</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Service -->
+    <div class="card mb-4">
+        <div class="card-header">Add New Service</div>
+        <div class="card-body">
+            <form action="/admin/add_service" method="post" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" name="name" class="form-control" placeholder="Service Name" required>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" name="image" class="form-control" placeholder="Docker Image" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" name="port_internal" class="form-control" placeholder="Internal Port" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" name="port_base" class="form-control" placeholder="Base External Port" required>
+                </div>
+                <div class="col-md-12">
+                    <input type="text" name="volume_path" class="form-control" placeholder="Volume Path (e.g. /data)" required>
+                </div>
+                <div class="col-md-12">
+                    <button type="submit" class="btn btn-success">Add Service</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Container Controls -->
+    <div class="card mb-4">
+        <div class="card-header">Manage Containers</div>
+        <div class="card-body">
+            <form action="/admin/stop_container" method="post" class="row g-3 mb-2">
+                <div class="col-md-10">
+                    <input type="text" name="container" class="form-control" placeholder="Container Name" required>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-danger w-100">Stop</button>
+                </div>
+            </form>
+            <form action="/admin/restart_container" method="post" class="row g-3 mb-2">
+                <div class="col-md-10">
+                    <input type="text" name="container" class="form-control" placeholder="Container Name" required>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-warning w-100">Restart</button>
+                </div>
+            </form>
+            <form action="/admin/logs_container" method="post" class="row g-3">
+                <div class="col-md-10">
+                    <input type="text" name="container" class="form-control" placeholder="Container Name" required>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-info w-100">Logs</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Service List -->
+    <div class="card mb-4">
+        <div class="card-header">Available Services</div>
+        <ul class="list-group list-group-flush">
+            {% for service in services %}
+            <li class="list-group-item">{{ service }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="text-center mt-4">
+        <a href="/logout" class="btn btn-outline-secondary">Logout</a>
+    </div>
+</div>
+
+<script>
+  const htmlElement = document.documentElement;
+  const toggleBtn = document.getElementById('toggleTheme');
+
+  // Appliquer le thème sauvegardé
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') {
+    htmlElement.setAttribute('data-bs-theme', 'dark');
+    toggleBtn.textContent = '☀️';
+  }
+
+  // Écoute du clic pour switcher
+  toggleBtn.addEventListener('click', () => {
+    if (htmlElement.getAttribute('data-bs-theme') === 'light') {
+      htmlElement.setAttribute('data-bs-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+      toggleBtn.textContent = '☀️';
+    } else {
+      htmlElement.setAttribute('data-bs-theme', 'light');
+      localStorage.setItem('theme', 'light');
+      toggleBtn.textContent = '🌙';
+    }
+  });
+</script>
+
+
+</body>
+</html>

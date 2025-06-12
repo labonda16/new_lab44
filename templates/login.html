@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      transition: background-color 0.3s ease;
+    }
+
+    .navbar {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 1030;
+    }
+
+    .container {
+      margin-top: 80px;
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <!-- Top Panel -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <span class="navbar-brand mb-0 h1">Labo 44</span>
+      <div class="d-flex align-items-center ms-auto">
+        <button id="themeToggleBtn" class="btn btn-sm btn-outline-light me-2">🌙</button>
+      
+      </div>
+    </div>
+  </nav>
+
+  <!-- Login Form -->
+  <div class="container d-flex vh-100">
+    <div class="row justify-content-center align-self-center w-100">
+      <div class="col-md-4">
+        <div class="card shadow">
+          <div class="card-header text-center">Student Portal</div>
+          <div class="card-body">
+            <form method="POST">
+              <div class="mb-3">
+                <label class="form-label">Username</label>
+                <input type="text" name="username" class="form-control" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input type="password" name="password" class="form-control" required>
+              </div>
+              <button class="btn btn-primary w-100">Login</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    const html = document.documentElement;
+    const body = document.body;
+    const toggleBtn = document.getElementById('themeToggleBtn');
+
+    function applyTheme(theme) {
+      html.setAttribute('data-bs-theme', theme);
+      if (theme === 'dark') {
+        body.classList.remove('bg-light');
+        body.classList.add('bg-dark', 'text-white');
+        toggleBtn.textContent = '☀️';
+      } else {
+        body.classList.remove('bg-dark', 'text-white');
+        body.classList.add('bg-light');
+        toggleBtn.textContent = '🌙';
+      }
+      localStorage.setItem('theme', theme);
+    }
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    applyTheme(savedTheme);
+
+    toggleBtn.addEventListener('click', () => {
+      const current = html.getAttribute('data-bs-theme');
+      const newTheme = current === 'light' ? 'dark' : 'light';
+      applyTheme(newTheme);
+    });
+  </script>
+</body>
+</html>
+

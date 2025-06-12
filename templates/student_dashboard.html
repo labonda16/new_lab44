@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body {
+      transition: background-color 0.3s ease;
+    }
+
+    .sidebar {
+      height: 100vh;
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 220px;
+      background-color: #343a40;
+      padding-top: 60px;
+    }
+
+    .sidebar a {
+      padding: 12px 20px;
+      display: block;
+      color: white;
+      text-decoration: none;
+    }
+
+    .sidebar a:hover {
+      background-color: #495057;
+    }
+
+    .main-content {
+      margin-left: 220px;
+      padding: 20px;
+    }
+
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 220px;
+      width: calc(100% - 220px);
+      z-index: 1030;
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h5 class="text-white text-center">Student Panel</h5>
+    <a href="#"><i class="bi bi-person-circle me-2"></i> My Profile</a>
+    <a href="#"><i class="bi bi-clock-history me-2"></i> Activity</a>
+    <a href="/logout"><i class="bi bi-box-arrow-left me-2"></i> Logout</a>
+  </div>
+
+  <!-- Top Navbar -->
+  <nav class="navbar navbar-dark bg-dark">
+    <div class="container-fluid">
+      <span class="navbar-brand">Welcome, {{ user }}</span>
+      <button id="themeToggleBtn" class="btn btn-sm btn-outline-light">🌙</button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <h4>Available Services</h4>
+    <div class="row">
+      {% for s in services %}
+        <div class="col-md-4">
+          <div class="card shadow-sm mb-3">
+            <div class="card-body">
+              <h5 class="card-title"><i class="bi bi-cpu me-2"></i>{{ s }}</h5>
+                <p>Status: <span id="status-{{ s }}" class="badge bg-secondary">Loading...</span></p>
+
+              <a href="/launch/{{ s }}" class="btn btn-primary" target="_blank">Launch</a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    const html = document.documentElement;
+    const body = document.body;
+    const toggleBtn = document.getElementById('themeToggleBtn');
+
+    function applyTheme(theme) {
+      html.setAttribute('data-bs-theme', theme);
+      if (theme === 'dark') {
+        body.classList.remove('bg-light');
+        body.classList.add('bg-dark', 'text-white');
+        toggleBtn.textContent = '☀️';
+      } else {
+        body.classList.remove('bg-dark', 'text-white');
+        body.classList.add('bg-light');
+        toggleBtn.textContent = '🌙';
+      }
+      localStorage.setItem('theme', theme);
+    }
+
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    applyTheme(savedTheme);
+
+    toggleBtn.addEventListener('click', () => {
+      const current = html.getAttribute('data-bs-theme');
+      const newTheme = current === 'light' ? 'dark' : 'light';
+      applyTheme(newTheme);
+    });
+  </script>
+  <script>
+  // Fonction pour charger dynamiquement le statut des services
+  async function fetchServiceStatus() {
+    try {
+      const response = await fetch('/api/service-status');
+      const statusData = await response.json();
+
+      for (const [service, status] of Object.entries(statusData)) {
+        const badge = document.getElementById('status-' + service);
+        if (badge) {
+          badge.textContent = status;
+          badge.className = 'badge ' + (status === 'Running' ? 'bg-success' : 'bg-danger');
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch service status", error);
+    }
+  }
+
+  // Appel au chargement
+  fetchServiceStatus();
+</script>
+
+</body>
+</html>
+

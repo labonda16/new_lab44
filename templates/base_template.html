@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Admin Page{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        .navbar { position: fixed; top: 0; width: 100%; z-index: 1030; }
+        body { padding-top: 70px; }
+        .theme-icon { font-size: 1.3rem; cursor: pointer; }
+        [data-bs-theme="dark"] .card, 
+        [data-bs-theme="dark"] .form-control {
+            background-color: #2c2f33;
+            color: #f0f0f0;
+        }
+        [data-bs-theme="dark"] input::placeholder {
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/dashboard">Admin Panel</a>
+    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+      <ul class="navbar-nav me-3">
+        <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+      </ul>
+      <span class="theme-icon text-light" id="toggleTheme">🌙</span>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-5">
+    {% block content %}
+    <!-- Your content goes here -->
+    {% endblock %}
+</div>
+
+<script>
+  const htmlElement = document.documentElement;
+  const toggleBtn = document.getElementById('toggleTheme');
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') {
+    htmlElement.setAttribute('data-bs-theme', 'dark');
+    toggleBtn.textContent = '☀️';
+  }
+  toggleBtn.addEventListener('click', () => {
+    if (htmlElement.getAttribute('data-bs-theme') === 'light') {
+      htmlElement.setAttribute('data-bs-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+      toggleBtn.textContent = '☀️';
+    } else {
+      htmlElement.setAttribute('data-bs-theme', 'light');
+      localStorage.setItem('theme', 'light');
+      toggleBtn.textContent = '🌙';
+    }
+  });
+</script>
+
+</body>
+</html>

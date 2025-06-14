@@ -1,0 +1,131 @@
+{% extends "base_template.html" %}
+
+{% block title %}Edit Service{% endblock %}
+
+{% block content %}
+<h1 class="text-center mb-4">Edit Service: {{ service_name }}</h1>
+
+<form method="post" enctype="multipart/form-data">
+    <div class="card mx-auto" style="max-width: 800px;">
+        <div class="card-body">
+
+            <!-- Image Docker -->
+            <div class="mb-3">
+                <label class="form-label">Docker Image</label>
+                <input type="text" class="form-control" name="image" value="{{ service.image }}" required>
+            </div>
+
+            <!-- Ports -->
+            <div class="mb-3">
+                <label class="form-label">Internal Port</label>
+                <input type="number" class="form-control" name="port_internal" value="{{ service.port_internal }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Base External Port</label>
+                <input type="number" class="form-control" name="port_base" value="{{ service.port_base }}" required>
+            </div>
+
+            <!-- Volumes -->
+            <div id="volumes-section">
+                <label class="form-label">Volumes</label>
+                {% for vol in service.volumes %}
+                <div class="input-group mb-2 volume-entry">
+                    <input type="text" name="volumes" class="form-control" value="{{ vol }}" placeholder="/host/path:/container/path" required>
+                    <input type="file" class="form-control" onchange="onFileSelect(this)" webkitdirectory directory multiple>
+                    <button type="button" class="btn btn-danger" onclick="removeVolume(this)">Remove</button>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" class="btn btn-secondary w-100 mb-3" onclick="addVolume()">+ Add Volume</button>
+
+            <!-- Variables d'environnement -->
+            <label class="form-label mt-3">Environment Variables</label>
+            <div id="env-section">
+                {% if service.environment %}
+                    {% for key, val in service.environment.items() %}
+                    <div class="input-group mb-2">
+                        <input type="text" class="form-control" name="env_key" value="{{ key }}" placeholder="KEY">
+                        <input type="text" class="form-control" name="env_value" value="{{ val }}" placeholder="VALUE">
+                        <button type="button" class="btn btn-danger" onclick="removeEnv(this)">Remove</button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <button type="button" class="btn btn-secondary w-100 mb-3" onclick="addEnv()">+ Add Environment Variable</button>
+
+            <!-- Ports supplémentaires -->
+            <label class="form-label mt-3">Extra Ports to Expose</label>
+            <div id="ports-section">
+                {% if service.extra_ports %}
+                    {% for port in service.extra_ports %}
+                    <div class="input-group mb-2">
+                        <input type="number" class="form-control" name="extra_ports" value="{{ port }}" placeholder="Port number">
+                        <button type="button" class="btn btn-danger" onclick="removePort(this)">Remove</button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <button type="button" class="btn btn-secondary w-100 mb-4" onclick="addPort()">+ Add Port</button>
+
+            <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+        </div>
+    </div>
+</form>
+
+<div class="text-center mt-4">
+    <a href="/dashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+</div>
+
+<script>
+function addVolume() {
+    const container = document.getElementById("volumes-section");
+    const div = document.createElement("div");
+    div.className = "input-group mb-2 volume-entry";
+    div.innerHTML = `
+        <input type="text" name="volumes" class="form-control" placeholder="/host/path:/container/path" required>
+        <input type="file" class="form-control" onchange="onFileSelect(this)" webkitdirectory directory multiple>
+        <button type="button" class="btn btn-danger" onclick="removeVolume(this)">Remove</button>
+    `;
+    container.appendChild(div);
+}
+
+function removeVolume(btn) {
+    btn.closest(".volume-entry").remove();
+}
+
+function addEnv() {
+    const container = document.getElementById("env-section");
+    const div = document.createElement("div");
+    div.className = "input-group mb-2";
+    div.innerHTML = `
+        <input type="text" class="form-control" name="env_key" placeholder="KEY">
+        <input type="text" class="form-control" name="env_value" placeholder="VALUE">
+        <button type="button" class="btn btn-danger" onclick="removeEnv(this)">Remove</button>
+    `;
+    container.appendChild(div);
+}
+
+function removeEnv(btn) {
+    btn.closest(".input-group").remove();
+}
+
+function addPort() {
+    const container = document.getElementById("ports-section");
+    const div = document.createElement("div");
+    div.className = "input-group mb-2";
+    div.innerHTML = `
+        <input type="number" class="form-control" name="extra_ports" placeholder="Port number">
+        <button type="button" class="btn btn-danger" onclick="removePort(this)">Remove</button>
+    `;
+    container.appendChild(div);
+}
+
+function removePort(btn) {
+    btn.closest(".input-group").remove();
+}
+
+function onFileSelect(input) {
+    // Optionnel : Afficher nom du dossier sélectionné
+}
+</script>
+{% endblock %}

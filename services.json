@@ -1,0 +1,18 @@
+{
+    "code-server": {
+        "image": "3issa019/code-server",
+        "port_base": 10000,
+        "env": {
+            "PASSWORD": "studentpass"
+        },
+        "volume_path": "/home/coder/project",
+        "port_internal": 8443
+    },
+    "gns3": {
+        "image": "takfa19/gns3-server-2",
+        "port_base": 11000,
+        "env": {},
+        "volume_path": "/data",
+        "port_internal": 3080
+    }
+}

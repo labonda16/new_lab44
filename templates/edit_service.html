@@ -1,0 +1,180 @@
+{% extends "base_template.html" %}
+
+{% block title %}Deploy a Container{% endblock %}
+
+{% block content %}
+<h1 class="text-center mb-1">📦 Deploy a Docker Container</h1>
+<p class="text-center text-muted mb-4">Configure all container options before launching your instance.</p>
+
+<form method="post">
+    <div class="accordion" id="containerConfig">
+
+        <!-- 🧱 Image & Network -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#networkConfig">
+                    🧱 Image & Network
+                </button>
+            </h2>
+            <div id="networkConfig" class="accordion-collapse collapse show">
+                <div class="accordion-body">
+
+                    <div class="mb-3">
+                        <label class="form-label">Container Name</label>
+                        <input type="text" class="form-control" name="container_name" placeholder="ex: my-app" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Docker Image</label>
+                        <input type="text" class="form-control" name="image" placeholder="ex: codercom/code-server" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Internal Port</label>
+                        <input type="number" class="form-control" name="port_internal" placeholder="ex: 8443" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Base External Port</label>
+                        <input type="number" class="form-control" name="port_base" placeholder="ex: 10000" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Restart Policy</label>
+                        <select class="form-select" name="restart_policy">
+                            <option value="no">No</option>
+                            <option value="on-failure">On failure</option>
+                            <option value="always">Always</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📁 Volumes -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#volumesConfig">
+                    📁 Volumes
+                </button>
+            </h2>
+            <div id="volumesConfig" class="accordion-collapse collapse">
+                <div class="accordion-body" id="volumes-section">
+                    <!-- Example Volume -->
+                    <!-- Can be added dynamically via JS -->
+                </div>
+                <div class="p-3">
+                    <button type="button" class="btn btn-secondary w-100" onclick="addVolume()">+ Add Volume</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ⚙️ Environment Variables -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#envConfig">
+                    ⚙️ Environment Variables
+                </button>
+            </h2>
+            <div id="envConfig" class="accordion-collapse collapse">
+                <div class="accordion-body" id="env-section">
+                    <!-- Environment vars will be added here -->
+                </div>
+                <div class="p-3">
+                    <button type="button" class="btn btn-secondary w-100" onclick="addEnv()">+ Add Environment Variable</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🔌 Extra Ports -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#portsConfig">
+                    🔌 Extra Ports to Expose
+                </button>
+            </h2>
+            <div id="portsConfig" class="accordion-collapse collapse">
+                <div class="accordion-body" id="extra-ports-section">
+                    <!-- Extra ports go here -->
+                </div>
+                <div class="p-3">
+                    <button type="button" class="btn btn-secondary w-100" onclick="addExtraPort()">+ Add Port</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ⚙️ Advanced Options -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#advancedConfig">
+                    ⚙️ Advanced Options
+                </button>
+            </h2>
+            <div id="advancedConfig" class="accordion-collapse collapse">
+                <div class="accordion-body">
+                    <div class="mb-3">
+                        <label class="form-label">Entrypoint (optional)</label>
+                        <input type="text" class="form-control" name="entrypoint" placeholder="ex: /bin/bash">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Command (CMD)</label>
+                        <input type="text" class="form-control" name="command" placeholder="ex: run.sh">
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="tty" id="ttyCheck">
+                        <label class="form-check-label" for="ttyCheck">Enable TTY (interactive)</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🚀 Deploy Button -->
+    <div class="text-center mt-4">
+        <button type="submit" class="btn btn-primary w-100">🚀 Deploy Container</button>
+    </div>
+</form>
+
+<!-- Back to dashboard -->
+<div class="text-center mt-4">
+    <a href="/dashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+</div>
+
+<!-- JS: Volume, Env, Ports -->
+<script>
+function addVolume() {
+    const container = document.getElementById("volumes-section");
+    const div = document.createElement("div");
+    div.className = "input-group mb-2";
+    div.innerHTML = `
+        <input type="text" name="volumes" class="form-control" placeholder="/host:/container" required>
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
+    `;
+    container.appendChild(div);
+}
+
+function addEnv() {
+    const container = document.getElementById("env-section");
+    const div = document.createElement("div");
+    div.className = "input-group mb-2";
+    div.innerHTML = `
+        <input type="text" name="env_keys" class="form-control" placeholder="KEY" required>
+        <input type="text" name="env_values" class="form-control" placeholder="VALUE" required>
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
+    `;
+    container.appendChild(div);
+}
+
+function addExtraPort() {
+    const container = document.getElementById("extra-ports-section");
+    const div = document.createElement("div");
+    div.className = "input-group mb-2";
+    div.innerHTML = `
+        <input type="number" name="extra_ports" class="form-control" placeholder="Port number" required>
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
+    `;
+    container.appendChild(div);
+}
+</script>
+
+{% endblock %}

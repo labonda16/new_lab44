@@ -6,9 +6,12 @@ import socket
 import threading
 import time
 from datetime import datetime, timedelta
+import json
+import os
 
 
 app = Flask(__name__)
+app.permanent_session_lifetime = timedelta(hours=3)
 app.secret_key = "supersecretkey"
 client = docker.from_env()
 
@@ -47,6 +50,18 @@ SERVICES = {
         "port_internal": 3080
     }
 }
+SERVICES_FILE = 'services.json'
+def load_services():
+    if os.path.exists(SERVICES_FILE):
+        with open(SERVICES_FILE, 'r') as f:
+            return json.load(f)
+    else:
+        return ("services.json not found, please create or import it.")
+    return {}
+
+def save_services():
+    with open(SERVICES_FILE, 'w') as f:
+        json.dump(SERVICES, f, indent=4)
 
 def get_user_index(username):
     conn = sqlite3.connect("users.db")
@@ -84,6 +99,7 @@ def login():
         if user and user[1] == password:
             session['user'] = username
             session['admin'] = user[2]
+            session.permanent = True
             return redirect('/dashboard')
     return render_template('login.html')
     
@@ -242,6 +258,83 @@ def add_service():
         "volume_path": volume_path,
         "port_internal": port_internal
     }
+    save_services()  # ← ajout ici
+
+    return redirect('/dashboard')
+
+
+@app.route('/admin/edit_service/<service_name>', methods=['GET', 'POST'])
+def edit_service(service_name):
+    if not session.get('admin'):
+        return redirect('/')
+
+    if service_name not in SERVICES:
+        return "Service not found", 404
+
+    service = SERVICES[service_name]
+
+    # Assurer que les clés existent
+    service.setdefault('environment', {})
+    service.setdefault('volumes', [])
+    service.setdefault('extra_ports', [])
+
+    if request.method == 'POST':
+        service['image'] = request.form['image']
+        service['port_base'] = int(request.form['port_base'])
+        service['port_internal'] = int(request.form['port_internal'])
+
+        # Volumes
+        volumes = request.form.getlist('volumes')
+        service['volumes'] = [v for v in volumes if v.strip()]
+
+        # Env vars
+        environment = {}
+        env_keys = request.form.getlist('env_key')
+        env_vals = request.form.getlist('env_value')
+        for k, v in zip(env_keys, env_vals):
+            if k.strip():
+                environment[k.strip()] = v.strip()
+        service['environment'] = environment
+
+        # Extra ports
+        extra_ports = request.form.getlist('extra_ports')
+        service['extra_ports'] = [int(p) for p in extra_ports if p.strip().isdigit()]
+
+        save_services()
+        return redirect('/dashboard')
+
+    return render_template('edit_service.html', service_name=service_name, service=service)
+
+@app.route('/admin/update_service', methods=['POST'])
+def update_service():
+    if not session.get('admin'):
+        return redirect('/')
+    
+    name = request.form['name']
+    image = request.form['image']
+    port_internal = int(request.form['port_internal'])
+    port_base = int(request.form['port_base'])
+    volume_path = request.form['volume_path']
+    
+    SERVICES[name] = {
+        "image": image,
+        "port_base": port_base,
+        "env": SERVICES[name].get("env", {}),
+        "volume_path": volume_path,
+        "port_internal": port_internal
+    }
+    save_services()  # ← sauvegarde ici
+    return redirect('/dashboard')
+
+@app.route('/admin/delete_service', methods=['POST'])
+def delete_service():
+    if not session.get('admin'):
+        return redirect('/')
+    service_name = request.form['service_name']
+    if service_name in SERVICES:
+        del SERVICES[service_name]
+        save_services()  # ← ajout ici
+
     return redirect('/dashboard')
 
 
@@ -298,24 +391,5 @@ def logout():
     session.clear()
     return redirect('/')
     
-#supprime les conteneurs qui ont plus de 3 heures
-def cleanup_old_containers():
-    while True:
-        for container in client.containers.list(all=True):
-            try:
-                labels = container.labels
-                last_access = labels.get("last_access")
-                if last_access:
-                    last_dt = datetime.strptime(last_access, "%Y-%m-%dT%H:%M:%S")
-                    if datetime.utcnow() - last_dt > timedelta(hours=0.02):
-                        container.remove(force=True)
-                        print(f"Container {container.name} removed due to inactivity.")
-            except Exception as e:
-                print(f"Error while checking container {container.name}: {e}")
-        time.sleep(600)  # Attendre 10 minutes avant de rechecker
-
-
 if __name__ == '__main__':
-    threading.Thread(target=cleanup_old_containers, daemon=True).start()
-
     app.run(debug=True, port=5000)

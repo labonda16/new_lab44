@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, url_for, jsonify
+from flask import Flask, render_template, request, redirect, session, url_for, jsonify, flash
 import docker
 import sqlite3
 import os
@@ -8,14 +8,25 @@ import time
 from datetime import datetime, timedelta
 import json
 import os
+import yaml
 
-
+"""
+-Création de l'application Flask
+-Définition d'une session persistante de 3 heures
+-Définition de la clé secrète
+-Connexion au moteur Docker local"""
 app = Flask(__name__)
 app.permanent_session_lifetime = timedelta(hours=3)
 app.secret_key = "supersecretkey"
 client = docker.from_env()
 
-# Initialize DB
+
+
+"""
+Créer une base users.db si elle n'existe pas,
+avec une table users :
+-username, password, is_admin (1 si admin), user_index
+-Le compte admin par défaut avec index 0"""
 if not os.path.exists("users.db"):
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
@@ -34,23 +45,10 @@ if not os.path.exists("users.db"):
     conn.commit()
     conn.close()
 
-SERVICES = {
-    "code-server": {
-        "image": "codercom/code-server-2",
-        "port_base": 10000,
-        "env": {"PASSWORD": "studentpass"},
-        "volume_path": "/home/coder/project",
-        "port_internal": 8443
-    },
-    "gns3": {
-        "image": "takfa19/gns3-server-2",
-        "port_base": 11000,
-        "env": {},
-        "volume_path": "/data",
-        "port_internal": 3080
-    }
-}
+# Load services from JSON file
 SERVICES_FILE = 'services.json'
+
+"""Charger les services Docker depuis un fichier services.json"""
 def load_services():
     if os.path.exists(SERVICES_FILE):
         with open(SERVICES_FILE, 'r') as f:
@@ -59,10 +57,17 @@ def load_services():
         return ("services.json not found, please create or import it.")
     return {}
 
+"""Permet d'enregistrer la config (image, ports, etc.)"""
 def save_services():
     with open(SERVICES_FILE, 'w') as f:
         json.dump(SERVICES, f, indent=4)
 
+"""SERVICES est un dictionnaire global contenant 
+tous les services disponibles"""
+SERVICES = load_services()
+
+"""Obtenir user_index à partir du nom d'utilisateur.
+Si l'utilisateur n'existe pas, retourne None."""
 def get_user_index(username):
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
@@ -71,7 +76,7 @@ def get_user_index(username):
     conn.close()
     return result[0] if result else None
 
-
+"""Obtenir les infos d'un utilisateur"""
 def get_user(username):
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
@@ -80,7 +85,7 @@ def get_user(username):
     conn.close()
     return row if row else None
 
-
+"""Lister tous les utilisateurs non-admins (pour le dashboard admin)"""
 def get_all_users():
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
@@ -89,7 +94,9 @@ def get_all_users():
     conn.close()
     return users
 
-
+"""
+Route d’accueil pour se connecter
+Si le mot de passe est correct → redirige vers /dashboar"""
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -103,29 +110,88 @@ def login():
             return redirect('/dashboard')
     return render_template('login.html')
     
-#verifie si le port est dispo pour lancer un nouveau contenneur
+"""
+Vérifie si un port est libre 
+(important pour éviter les conflits lors du lancement d’un service)"""
 def is_port_free(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(('0.0.0.0', port)) != 0
 
+"""
+Renvoie l’état (Running, Stopped, Not Found)
+de chaque conteneur de l’utilisateur courant 
+(pour affichage dans le dashboard)"""
 @app.route("/api/service-status")
 def service_status():
-    # Simulé, à remplacer par ta logique réelle
-    return jsonify({
-        "Jupyter": "Running",
-        "VSCode": "Stopped",
-        "Terminal": "Running"
-    })
+    status = {}
+    for service_name in SERVICES:
+        user = session.get('user')
+        container_name = f"{service_name}-{user}"
+        try:
+            container = client.containers.get(container_name)
+            status[service_name] = "Running" if container.status == "running" else "Stopped"
+        except:
+            status[service_name] = "Not Found"
+    return jsonify(status)
 
+
+
+def calculate_cpu_percent(stats):
+    try:
+        cpu_delta = stats["cpu_stats"]["cpu_usage"]["total_usage"] - stats["precpu_stats"]["cpu_usage"]["total_usage"]
+        system_delta = stats["cpu_stats"]["system_cpu_usage"] - stats["precpu_stats"]["system_cpu_usage"]
+        if system_delta > 0.0 and cpu_delta > 0.0:
+            return (cpu_delta / system_delta) * len(stats["cpu_stats"]["cpu_usage"].get("percpu_usage", [])) * 100.0
+    except Exception:
+        pass
+    return 0.0
+
+
+"""
+Admin : affiche liste des utilisateurs + services
+Étudiant : affiche ses services personnels"""
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session:
         return redirect('/')
+
     if session.get('admin'):
-        return render_template('admin_dashboard.html', users=get_all_users(), services=list(SERVICES.keys()))
+        client = docker.from_env()
+        containers = client.containers.list(all=True)
+        # admin dashboard
+        container_info = []
+        users = get_all_users()
+        for container in client.containers.list():
+            if any(container.name.endswith(f"-{user}") for user in users):  # 🔍 filtre sur les conteneurs étudiants
+                stats = container.stats(stream=False)
+                cpu_percent = calculate_cpu_percent(stats)
+                mem_usage = stats["memory_stats"]["usage"] / (1024 * 1024)
+                container_info.append({
+                    "name": container.name,
+                    "image": container.image.tags[0] if container.image.tags else "N/A",
+                    "status": container.status,
+                    "ports": [
+                        f"{binding['HostPort']} → {container_port}"
+                        for container_port, bindings in container.attrs["NetworkSettings"]["Ports"].items()
+                        if bindings
+                        for binding in bindings
+                    ] if container.attrs["NetworkSettings"]["Ports"] else [],
+                    "cpu": f"{cpu_percent:.2f}%",
+                    "memory": f"{mem_usage:.2f} MB"
+                })
+
+        return render_template(
+            'admin_dashboard.html',
+            users=get_all_users(),
+            services=list(SERVICES.keys()),
+            containers=container_info
+        )
+
+    # Partie pour étudiant
     return render_template('student_dashboard.html', user=session['user'], services=list(SERVICES.keys()))
 
 
+"""Création d’un compte étudiant avec un user_index unique"""
 @app.route('/create_user', methods=['POST'])
 def create_user():
     if not session.get('admin'):
@@ -240,6 +306,65 @@ def install_package():
         return exec_log.output.decode()
     except Exception as e:
         return str(e)
+
+
+
+
+@app.route("/admin/new_service", methods=["GET", "POST"])
+def new_service():
+    if request.method == "POST":
+        # Récupération des champs simples
+        name = request.form.get("name")
+        image = request.form.get("image")
+        port_internal = request.form.get("port_internal")
+        port_base = request.form.get("port_base")
+
+        # Validation minimale
+        if not name or not image or not port_internal or not port_base:
+            flash("All required fields must be filled!", "danger")
+            return redirect(request.url)
+
+        # Récupération des volumes
+        volumes = request.form.getlist("volumes")
+
+        # Variables d'environnement
+        env_keys = request.form.getlist("env_key")
+        env_values = request.form.getlist("env_value")
+        environment = dict(zip(env_keys, env_values)) if env_keys and env_values else {}
+
+        # Ports supplémentaires
+        extra_ports = request.form.getlist("extra_ports")
+        extra_ports = [int(p) for p in extra_ports if p.strip().isdigit()]
+
+        # Structure du service à sauvegarder
+        service_data = {
+            "image": image,
+            "port_internal": int(port_internal),
+            "port_base": int(port_base),
+            "volumes": volumes,
+            "environment": environment,
+            "extra_ports": extra_ports,
+        }
+
+        # Chemin du fichier services.yaml
+        services_file = "services.yaml"
+        if os.path.exists(services_file):
+            with open(services_file, "r") as f:
+                all_services = yaml.safe_load(f) or {}
+        else:
+            all_services = {}
+
+        # Ajout du nouveau service
+        all_services[name] = service_data
+
+        # Sauvegarde du fichier YAML
+        with open(services_file, "w") as f:
+            yaml.dump(all_services, f)
+
+        flash(f"Service '{name}' added successfully!", "success")
+        return redirect(url_for("dashboard"))
+
+    return render_template("new_service.html")
 
 
 @app.route('/admin/add_service', methods=['POST'])

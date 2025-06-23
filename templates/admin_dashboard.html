@@ -134,32 +134,14 @@
         </div>
     </div>
 
-    <!-- Add Service -->
-    <div class="card mb-4">
-        <div class="card-header">Add New Service</div>
-        <div class="card-body">
-            <form action="/admin/add_service" method="post" class="row g-3">
-                <div class="col-md-4">
-                    <input type="text" name="name" class="form-control" placeholder="Service Name" required>
-                </div>
-                <div class="col-md-4">
-                    <input type="text" name="image" class="form-control" placeholder="Docker Image" required>
-                </div>
-                <div class="col-md-2">
-                    <input type="number" name="port_internal" class="form-control" placeholder="Internal Port" required>
-                </div>
-                <div class="col-md-2">
-                    <input type="number" name="port_base" class="form-control" placeholder="Base External Port" required>
-                </div>
-                <div class="col-md-12">
-                    <input type="text" name="volume_path" class="form-control" placeholder="Volume Path (e.g. /data)" required>
-                </div>
-                <div class="col-md-12">
-                    <button type="submit" class="btn btn-success">Add Service</button>
-                </div>
-            </form>
-        </div>
+    <!-- Add Service Shortcut -->
+<div class="card mb-4">
+    <div class="card-header">Add New Service</div>
+    <div class="card-body text-center">
+        <a href="/admin/new_service" class="btn btn-success">Go to Add Service Page</a>
     </div>
+</div>
+
 
     <!-- Container Controls -->
     <div class="card mb-4">
@@ -210,6 +192,69 @@
         {% endfor %}
     </ul>
 </div>
+
+<!-- Running Containers -->
+<div class="card mb-4">
+    <div class="card-header">Running Student Containers</div>
+    <div class="card-body">
+        {% if containers %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Image</th>
+                            <th>Status</th>
+                            <th>Ports</th>
+                            <th>CPU</th>
+                            <th>Memory</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in containers %}
+                        <tr>
+                            <td>{{ c.name }}</td>
+                            <td>{{ c.image }}</td>
+                            <td>{{ c.status }}</td>
+                            <td>
+                                {% if c.ports %}
+                                    <ul class="mb-0">
+                                        {% for port in c.ports %}
+                                            <li>{{ port }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <em>No ports mapped</em>
+                                {% endif %}
+                            </td>
+                            <td>{{ c.cpu }}</td>
+                            <td>{{ c.memory }}</td>
+                            <td>
+                                <form action="/admin/stop_container" method="post" class="d-inline">
+                                    <input type="hidden" name="container" value="{{ c.name }}">
+                                    <button class="btn btn-sm btn-danger">Stop</button>
+                                </form>
+                                <form action="/admin/restart_container" method="post" class="d-inline">
+                                    <input type="hidden" name="container" value="{{ c.name }}">
+                                    <button class="btn btn-sm btn-warning">Restart</button>
+                                </form>
+                                <form action="/admin/logs_container" method="post" class="d-inline">
+                                    <input type="hidden" name="container" value="{{ c.name }}">
+                                    <button class="btn btn-sm btn-info">Logs</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">No running student containers found.</p>
+        {% endif %}
+    </div>
+</div>
+
 
 
     <div class="text-center mt-4">

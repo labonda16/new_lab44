@@ -3,12 +3,49 @@ import docker
 import sqlite3
 import os
 import socket
+import subprocess
 import threading
 import time
 from datetime import datetime, timedelta
 import json
 import os
 import yaml
+
+
+import subprocess
+import os
+
+def start_monitoring_stack():
+    compose_file = os.path.join(os.path.dirname(__file__), 'docker-compose.yml')
+
+    try:
+        # Vérifie si les conteneurs Grafana/Prometheus tournent déjà
+        result = subprocess.run(
+            ["docker", "compose", "-f", compose_file, "ps", "--services", "--filter", "status=running"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True
+        )
+
+        running_services = result.stdout.strip().splitlines()
+
+        # Liste des services qu'on veut surveiller
+        expected_services = {"grafana", "prometheus", "cadvisor"}
+
+        if not expected_services.issubset(set(running_services)):
+            print("[INFO] Lancement du stack de monitoring (Grafana, Prometheus, cAdvisor)...")
+            subprocess.run(
+                ["docker", "compose", "-f", compose_file, "up", "-d"],
+                check=True
+            )
+        else:
+            print("[INFO] Le stack de monitoring est déjà actif.")
+    except Exception as e:
+        print(f"[ERREUR] Impossible de lancer le stack de monitoring : {e}")
+
+# Lance le monitoring avant Flask
+start_monitoring_stack()
+
 
 """
 -Création de l'application Flask
@@ -150,6 +187,8 @@ def calculate_cpu_percent(stats):
 """
 Admin : affiche liste des utilisateurs + services
 Étudiant : affiche ses services personnels"""
+from flask import request
+
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session:
@@ -158,36 +197,46 @@ def dashboard():
     if session.get('admin'):
         client = docker.from_env()
         containers = client.containers.list(all=True)
-        # admin dashboard
         container_info = []
         users = get_all_users()
+
         for container in client.containers.list():
-            if any(container.name.endswith(f"-{user}") for user in users):  # 🔍 filtre sur les conteneurs étudiants
+            if any(container.name.endswith(f"-{user}") for user in users):  # 🔍 Conteneurs étudiants
                 stats = container.stats(stream=False)
                 cpu_percent = calculate_cpu_percent(stats)
                 mem_usage = stats["memory_stats"]["usage"] / (1024 * 1024)
+
+                # Ports + URL d’accès
+                ports = []
+                access_url = None
+                raw_ports = container.attrs["NetworkSettings"]["Ports"]
+                if raw_ports:
+                    for container_port, bindings in raw_ports.items():
+                        if bindings:
+                            for binding in bindings:
+                                host_port = binding["HostPort"]
+                                ports.append(f"{host_port} → {container_port}")
+                                if not access_url:
+                                    # On utilise le premier port trouvé pour générer une URL
+                                    host_ip = request.host.split(":")[0]
+                                    access_url = f"http://{host_ip}:{host_port}"
+
                 container_info.append({
                     "name": container.name,
-                    "image": container.image.tags[0] if container.image.tags else "N/A",
-                    "status": container.status,
-                    "ports": [
-                        f"{binding['HostPort']} → {container_port}"
-                        for container_port, bindings in container.attrs["NetworkSettings"]["Ports"].items()
-                        if bindings
-                        for binding in bindings
-                    ] if container.attrs["NetworkSettings"]["Ports"] else [],
+                    "ports": ports,
                     "cpu": f"{cpu_percent:.2f}%",
-                    "memory": f"{mem_usage:.2f} MB"
+                    "memory": f"{mem_usage:.2f} MB",
+                    "access_url": access_url
                 })
 
         return render_template(
             'admin_dashboard.html',
-            users=get_all_users(),
+            users=users,
             services=list(SERVICES.keys()),
             containers=container_info
         )
 
-    # Partie pour étudiant
+    # Partie étudiant
     return render_template('student_dashboard.html', user=session['user'], services=list(SERVICES.keys()))
 
 

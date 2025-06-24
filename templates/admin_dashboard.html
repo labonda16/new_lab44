@@ -143,37 +143,6 @@
 </div>
 
 
-    <!-- Container Controls -->
-    <div class="card mb-4">
-        <div class="card-header">Manage Containers</div>
-        <div class="card-body">
-            <form action="/admin/stop_container" method="post" class="row g-3 mb-2">
-                <div class="col-md-10">
-                    <input type="text" name="container" class="form-control" placeholder="Container Name" required>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-danger w-100">Stop</button>
-                </div>
-            </form>
-            <form action="/admin/restart_container" method="post" class="row g-3 mb-2">
-                <div class="col-md-10">
-                    <input type="text" name="container" class="form-control" placeholder="Container Name" required>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-warning w-100">Restart</button>
-                </div>
-            </form>
-            <form action="/admin/logs_container" method="post" class="row g-3">
-                <div class="col-md-10">
-                    <input type="text" name="container" class="form-control" placeholder="Container Name" required>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-info w-100">Logs</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
 <!-- Service List -->
 <div class="card mb-4">
     <div class="card-header">Available Services</div>
@@ -203,8 +172,6 @@
                     <thead class="table-light">
                         <tr>
                             <th>Name</th>
-                            <th>Image</th>
-                            <th>Status</th>
                             <th>Ports</th>
                             <th>CPU</th>
                             <th>Memory</th>
@@ -215,8 +182,6 @@
                         {% for c in containers %}
                         <tr>
                             <td>{{ c.name }}</td>
-                            <td>{{ c.image }}</td>
-                            <td>{{ c.status }}</td>
                             <td>
                                 {% if c.ports %}
                                     <ul class="mb-0">
@@ -243,6 +208,9 @@
                                     <input type="hidden" name="container" value="{{ c.name }}">
                                     <button class="btn btn-sm btn-info">Logs</button>
                                 </form>
+                                {% if c.access_url %}
+                                <a href="{{ c.access_url }}" target="_blank" class="btn btn-sm btn-success d-inline">Access</a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -254,6 +222,7 @@
         {% endif %}
     </div>
 </div>
+
 
 
 

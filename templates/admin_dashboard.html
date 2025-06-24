@@ -163,54 +163,70 @@
 </div>
 
 <!-- Running Containers -->
-<div class="card mb-4">
-    <div class="card-header">Running Student Containers</div>
+<div class="card mb-5 shadow rounded-4 border-0 px-3 py-2" style="background: rgba(255,255,255,0.03); backdrop-filter: blur(5px);">
+    <div class="card-header bg-transparent border-bottom-0 fs-5 fw-bold">Running Student Containers</div>
     <div class="card-body">
         {% if containers %}
             <div class="table-responsive">
-                <table class="table table-bordered table-hover align-middle">
-                    <thead class="table-light">
+                <table class="table align-middle table-borderless text-white">
+                    <thead class="border-0">
                         <tr>
-                            <th>Name</th>
+                            <th class="ps-3">Name</th>
                             <th>Ports</th>
                             <th>CPU</th>
                             <th>Memory</th>
-                            <th>Actions</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for c in containers %}
-                        <tr>
-                            <td>{{ c.name }}</td>
+                        <tr class="align-middle">
+                            <td class="ps-3 fw-semibold">{{ c.name }}</td>
                             <td>
                                 {% if c.ports %}
-                                    <ul class="mb-0">
+                                    <ul class="mb-0 small">
                                         {% for port in c.ports %}
                                             <li>{{ port }}</li>
                                         {% endfor %}
                                     </ul>
                                 {% else %}
-                                    <em>No ports mapped</em>
+                                    <em class="text-muted small">No ports</em>
                                 {% endif %}
                             </td>
                             <td>{{ c.cpu }}</td>
                             <td>{{ c.memory }}</td>
-                            <td>
-                                <form action="/admin/stop_container" method="post" class="d-inline">
-                                    <input type="hidden" name="container" value="{{ c.name }}">
-                                    <button class="btn btn-sm btn-danger">Stop</button>
-                                </form>
-                                <form action="/admin/restart_container" method="post" class="d-inline">
-                                    <input type="hidden" name="container" value="{{ c.name }}">
-                                    <button class="btn btn-sm btn-warning">Restart</button>
-                                </form>
-                                <form action="/admin/logs_container" method="post" class="d-inline">
-                                    <input type="hidden" name="container" value="{{ c.name }}">
-                                    <button class="btn btn-sm btn-info">Logs</button>
-                                </form>
-                                {% if c.access_url %}
-                                <a href="{{ c.access_url }}" target="_blank" class="btn btn-sm btn-success d-inline">Access</a>
-                                {% endif %}
+                            <td class="text-center">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-light dropdown-toggle px-4 py-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow rounded-3" style="min-width: 180px;">
+                                        <li>
+                                            <form action="/admin/stop_container" method="post">
+                                                <input type="hidden" name="container" value="{{ c.name }}">
+                                                <button class="dropdown-item text-danger" type="submit">🛑 Stop</button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form action="/admin/restart_container" method="post">
+                                                <input type="hidden" name="container" value="{{ c.name }}">
+                                                <button class="dropdown-item text-warning" type="submit">🔄 Restart</button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form action="/admin/logs_container" method="post">
+                                                <input type="hidden" name="container" value="{{ c.name }}">
+                                                <button class="dropdown-item text-info" type="submit">📜 Logs</button>
+                                            </form>
+                                        </li>
+                                        {% if c.access_url %}
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a href="{{ c.access_url }}" target="_blank" class="dropdown-item text-success">🚀 Access</a>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -218,10 +234,11 @@
                 </table>
             </div>
         {% else %}
-            <p class="text-muted">No running student containers found.</p>
+            <p class="text-muted text-center">No running student containers found.</p>
         {% endif %}
     </div>
 </div>
+
 
 
 

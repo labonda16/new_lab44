@@ -1,0 +1,10 @@
+-le state de service dans le dashboard etudiant ne
+se met pas ajour automatiquement sauf aprés un 
+refresh de la page.
+
+-conflit de port service etudiant a gerer
+
+
+-logs container dans admin dashboard ne fonctionne pas.
+
+-running containers ne se met pas ajour sauf avec refresh de page

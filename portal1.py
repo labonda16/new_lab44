@@ -265,6 +265,58 @@ def create_user():
     return redirect('/dashboard')
 
 
+
+@app.route('/admin/containers/status')
+def get_running_student_containers():
+    client = docker.from_env()
+    users = get_all_users()
+    result = []
+
+    for container in client.containers.list():
+        if any(container.name.endswith(f"-{user}") for user in users):
+            stats = container.stats(stream=False)
+            cpu_percent = calculate_cpu_percent(stats)
+            mem_usage = stats["memory_stats"]["usage"] / (1024 * 1024)
+            ports = []
+            if container.attrs["NetworkSettings"]["Ports"]:
+                for container_port, bindings in container.attrs["NetworkSettings"]["Ports"].items():
+                    if bindings:
+                        for binding in bindings:
+                            ports.append(f"{binding['HostPort']} → {container_port}")
+            result.append({
+                "name": container.name,
+                "cpu": f"{cpu_percent:.2f}%",
+                "memory": f"{mem_usage:.2f} MB",
+                "ports": ports,
+                "access_url": f"http://localhost:{bindings[0]['HostPort']}" if bindings else None
+            })
+
+    return jsonify(result)
+
+
+
+
+
+@app.route('/delete_user', methods=['POST'])
+def delete_user():
+    if not session.get('admin'):
+        return redirect('/')
+    
+    username = request.form['username']  # Nom d'utilisateur à supprimer
+
+    conn = sqlite3.connect("users.db")
+    c = conn.cursor()
+    try:
+        c.execute("DELETE FROM users WHERE username = ?", (username,))
+        conn.commit()
+    finally:
+        conn.close()
+
+    return redirect('/dashboard')
+
+
+
+
 @app.route('/launch/<service_name>')
 def launch_service(service_name):
     if 'user' not in session:
@@ -323,7 +375,10 @@ def launch_service(service_name):
         labels={"last_access": now_str})
         
     return render_template('service_ready.html', service_name=service_name, service_url=service_url)
-    
+
+
+"""this is responsble for deleting containesrs of a user 
+when he logout or after 3hours""" 
 @app.route('/admin/delete_session/<username>')
 def delete_session(username):
     if not session.get('admin'):

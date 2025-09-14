@@ -209,60 +209,63 @@
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {% for c in containers %}
-                    <tr class="bg-dark rounded-3">
-                        <td class="fw-bold ps-3">{{ c.name }}</td>
-                        <td>
-                            {% if c.ports %}
-                                <ul class="mb-0 list-unstyled">
-                                    {% for port in c.ports %}
-                                        <li>{{ port }}</li>
-                                    {% endfor %}
-                                </ul>
-                            {% else %}
-                                <em>No ports mapped</em>
-                            {% endif %}
-                        </td>
-                        <td>{{ c.cpu }}</td>
-                        <td>{{ c.memory }}</td>
-                        <td>
-                            {% if c.access_url %}
-                            <a href="{{ c.access_url }}" target="_blank" class="btn btn-sm btn-outline-success">🔗</a>
-                            {% else %}
-                            <em>N/A</em>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="dropdown">
-                                <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                    Actions
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-dark shadow animated fadeIn">
-                                    <li>
-                                        <form action="/admin/stop_container" method="post">
-                                            <input type="hidden" name="container" value="{{ c.name }}">
-                                            <button class="dropdown-item text-danger">🛑 Stop</button>
-                                        </form>
-                                    </li>
-                                    <li>
-                                        <form action="/admin/restart_container" method="post">
-                                            <input type="hidden" name="container" value="{{ c.name }}">
-                                            <button class="dropdown-item text-warning">🔁 Restart</button>
-                                        </form>
-                                    </li>
-                                    <li>
-                                        <form action="/admin/logs_container" method="post">
-                                            <input type="hidden" name="container" value="{{ c.name }}">
-                                            <button class="dropdown-item text-info">📄 Logs</button>
-                                        </form>
-                                    </li>
-                                </ul>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
+                <tbody id="containerTableBody">
+                    {% if containers %}
+                        {% for c in containers %}
+                        <tr class="bg-dark rounded-3">
+                            <td class="fw-bold ps-3">{{ c.name }}</td>
+                            <td>
+                                {% if c.ports %}
+                                    <ul class="mb-0 list-unstyled">
+                                        {% for port in c.ports %}
+                                            <li>{{ port }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <em>No ports mapped</em>
+                                {% endif %}
+                            </td>
+                            <td>{{ c.cpu }}</td>
+                            <td>{{ c.memory }}</td>
+                            <td>
+                                {% if c.access_url %}
+                                <a href="{{ c.access_url }}" target="_blank" class="btn btn-sm btn-outline-success">🔗</a>
+                                {% else %}
+                                <em>N/A</em>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow animated fadeIn">
+                                        <li>
+                                            <form action="/admin/stop_container" method="post">
+                                                <input type="hidden" name="container" value="{{ c.name }}">
+                                                <button class="dropdown-item text-danger">🛑 Stop</button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form action="/admin/restart_container" method="post">
+                                                <input type="hidden" name="container" value="{{ c.name }}">
+                                                <button class="dropdown-item text-warning">🔁 Restart</button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form action="/admin/logs_container" method="post">
+                                                <input type="hidden" name="container" value="{{ c.name }}">
+                                                <button class="dropdown-item text-info">📄 Logs</button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endif %}
                 </tbody>
+
             </table>
         </div>
         {% else %}
@@ -326,7 +329,7 @@ function loadContainers() {
 }
 
 // Rafraîchir toutes les 10 secondes
-setInterval(loadContainers, 10000);
+setInterval(loadContainers, 2000);
 </script>
 
 

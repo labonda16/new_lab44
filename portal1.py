@@ -10,8 +10,6 @@ from datetime import datetime, timedelta
 import json
 import os
 import yaml
-
-
 import subprocess
 import os
 
@@ -44,7 +42,7 @@ def start_monitoring_stack():
         print(f"[ERREUR] Impossible de lancer le stack de monitoring : {e}")
 
 # Lance le monitoring avant Flask
-start_monitoring_stack()
+#start_monitoring_stack()
 
 
 """
@@ -187,57 +185,37 @@ def calculate_cpu_percent(stats):
 """
 Admin : affiche liste des utilisateurs + services
 Étudiant : affiche ses services personnels"""
-from flask import request
-
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session:
         return redirect('/')
 
     if session.get('admin'):
-        client = docker.from_env()
-        containers = client.containers.list(all=True)
-        container_info = []
-        users = get_all_users()
-
-        for container in client.containers.list():
-            if any(container.name.endswith(f"-{user}") for user in users):  # 🔍 Conteneurs étudiants
-                stats = container.stats(stream=False)
-                cpu_percent = calculate_cpu_percent(stats)
-                mem_usage = stats["memory_stats"]["usage"] / (1024 * 1024)
-
-                # Ports + URL d’accès
-                ports = []
-                access_url = None
-                raw_ports = container.attrs["NetworkSettings"]["Ports"]
-                if raw_ports:
-                    for container_port, bindings in raw_ports.items():
-                        if bindings:
-                            for binding in bindings:
-                                host_port = binding["HostPort"]
-                                ports.append(f"{host_port} → {container_port}")
-                                if not access_url:
-                                    # On utilise le premier port trouvé pour générer une URL
-                                    host_ip = request.host.split(":")[0]
-                                    access_url = f"http://{host_ip}:{host_port}"
-
-                container_info.append({
-                    "name": container.name,
-                    "ports": ports,
-                    "cpu": f"{cpu_percent:.2f}%",
-                    "memory": f"{mem_usage:.2f} MB",
-                    "access_url": access_url
-                })
-
+        # Appel direct de ta fonction
+        container_info = get_running_student_containers().json  # récupère les données JSON
         return render_template(
             'admin_dashboard.html',
-            users=users,
+            users=get_all_users(),
             services=list(SERVICES.keys()),
             containers=container_info
         )
 
-    # Partie étudiant
     return render_template('student_dashboard.html', user=session['user'], services=list(SERVICES.keys()))
+
+
+@app.route('/api/docker/images')
+def list_docker_images():
+    client = docker.from_env()
+    images = client.images.list()
+
+    image_tags = []
+    for img in images:
+        # Un tag peut être vide (images non taguées)
+        tags = img.tags if img.tags else [img.short_id]
+        image_tags.extend(tags)
+
+    return jsonify(image_tags)
+
 
 
 """Création d’un compte étudiant avec un user_index unique"""
@@ -272,26 +250,43 @@ def get_running_student_containers():
     users = get_all_users()
     result = []
 
-    for container in client.containers.list():
+    for container in client.containers.list(all=True):  # On liste tous les conteneurs
         if any(container.name.endswith(f"-{user}") for user in users):
-            stats = container.stats(stream=False)
-            cpu_percent = calculate_cpu_percent(stats)
-            mem_usage = stats["memory_stats"]["usage"] / (1024 * 1024)
+
+            # 🔒 Vérifie que le conteneur est bien en cours d'exécution
+            if container.status != "running":
+                continue
+
+            try:
+                stats = container.stats(stream=False)
+                cpu_percent = calculate_cpu_percent(stats)
+                mem_usage = stats["memory_stats"]["usage"] / (1024 * 1024)
+            except Exception as e:
+                print(f"Erreur lors du calcul des stats pour {container.name}: {e}")
+                cpu_percent = 0.0
+                mem_usage = 0.0
+
             ports = []
-            if container.attrs["NetworkSettings"]["Ports"]:
-                for container_port, bindings in container.attrs["NetworkSettings"]["Ports"].items():
+            access_url = None
+            raw_ports = container.attrs["NetworkSettings"]["Ports"]
+            if raw_ports:
+                for container_port, bindings in raw_ports.items():
                     if bindings:
                         for binding in bindings:
                             ports.append(f"{binding['HostPort']} → {container_port}")
+                            if not access_url:
+                                access_url = f"http://localhost:{binding['HostPort']}"
+
             result.append({
                 "name": container.name,
                 "cpu": f"{cpu_percent:.2f}%",
                 "memory": f"{mem_usage:.2f} MB",
                 "ports": ports,
-                "access_url": f"http://localhost:{bindings[0]['HostPort']}" if bindings else None
+                "access_url": access_url
             })
 
     return jsonify(result)
+
 
 
 

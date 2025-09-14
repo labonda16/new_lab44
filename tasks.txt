@@ -4,7 +4,7 @@ refresh de la page.
 
 -conflit de port service etudiant a gerer
 
-
+- rgler formulaire de adding services
 -logs container dans admin dashboard ne fonctionne pas.
 
 -running containers ne se met pas ajour sauf avec refresh de page

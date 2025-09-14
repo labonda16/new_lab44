@@ -1,3 +1,27 @@
+graphana:
+  environment: {}
+  extra_ports: []
+  image: grafana/grafana:latest
+  port_base: 8000
+  port_internal: 8000
+  volumes:
+  - /host:/home
+hhhhh:
+  environment: {}
+  extra_ports: []
+  image: grafana/grafana:latest
+  port_base: 90000
+  port_internal: 8000
+  volumes:
+  - /host:/home
+pynet:
+  environment: {}
+  extra_ports: []
+  image: takfa19/ubuntu22_pynet:v1.0
+  port_base: 8000
+  port_internal: 8000
+  volumes:
+  - /host:/home
 ubuntu:
   environment: {}
   extra_ports: []

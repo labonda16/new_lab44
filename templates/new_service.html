@@ -15,10 +15,12 @@
                 <input type="text" class="form-control" name="name" placeholder="myservice" required>
             </div>
 
-            <!-- Image Docker -->
+           <!-- Image Docker -->
             <div class="mb-3">
                 <label class="form-label">Docker Image</label>
-                <input type="text" class="form-control" name="image" placeholder="myimage:latest" required>
+                <select class="form-select" name="image" id="imageSelect" required>
+                    <option value="" disabled selected>Loading available images...</option>
+                </select>
             </div>
 
             <!-- Ports -->
@@ -35,8 +37,8 @@
             <div id="volumes-section">
                 <label class="form-label">Volumes</label>
                 <div class="input-group mb-2 volume-entry">
-                    <input type="text" name="volumes" class="form-control" placeholder="/host/path:/container/path" required>
-                    <input type="file" class="form-control" onchange="onFileSelect(this)" webkitdirectory directory multiple>
+                    <input type="text" name="host_side_volume" class="form-control" placeholder="/host/path" required>
+                    <input type="text" name="container_side_volume" class="form-control" placeholder="/container/path" required>
                     <button type="button" class="btn btn-danger" onclick="removeVolume(this)">Remove</button>
                 </div>
             </div>
@@ -112,5 +114,27 @@ function removePort(btn) {
 function onFileSelect(input) {
     // Optionnel : afficher dossier sélectionné
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+    fetch('/api/docker/images')
+        .then(response => response.json())
+        .then(images => {
+            const select = document.getElementById("imageSelect");
+            select.innerHTML = ''; // vider d'abord
+            images.forEach(image => {
+                const option = document.createElement("option");
+                option.value = image;
+                option.textContent = image;
+                select.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error("Error loading Docker images:", error);
+            const select = document.getElementById("imageSelect");
+            select.innerHTML = '<option disabled>Error loading images</option>';
+        });
+});
+
+
 </script>
 {% endblock %}

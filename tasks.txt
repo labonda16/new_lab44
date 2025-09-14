@@ -8,3 +8,6 @@ refresh de la page.
 -logs container dans admin dashboard ne fonctionne pas.
 
 -running containers ne se met pas ajour sauf avec refresh de page
+
+-ajouter un fichier .sh  qui puissee installer les images docker necessaires
+-essayer de donner  les privilleges au script de fzaire un download de des images
